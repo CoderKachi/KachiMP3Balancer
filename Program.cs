@@ -13,11 +13,11 @@ class Program
     static void Main(string[] args)
     {
         // Menus
-        Menu mainMenu = new Menu("Main Menu");
+        Menu mainMenu = new Menu("KACHI MP3 BALANCER", ConsoleColor.Blue);
         Menu settingsMenu = new Menu("Settings");
 
         // Setup [mainMenu]
-        mainMenu.AddOption("1", "Add Tracks", () =>
+        mainMenu.AddOption("Add Track(s)", () =>
         {
             ClearDisplay();
             trackCount += 1;
@@ -25,7 +25,16 @@ class Program
             ConfirmPermission();
         });
 
-        mainMenu.AddOption("2", "Analyse Tracks", () =>
+        mainMenu.AddOption("Add Folder", () =>
+        {
+            ClearDisplay();
+            trackCount += 1;
+            Console.WriteLine("Tracks Added.");
+            ConfirmPermission();
+        });
+
+
+        mainMenu.AddOption("Analyse Tracks", () =>
         {
             ClearDisplay();
             tracksAnalyised = trackCount;
@@ -33,23 +42,16 @@ class Program
             ConfirmPermission();
         });
 
-        mainMenu.AddOption("3", "Set Target dB", () =>
-        {
-            ClearDisplay();
-            Console.WriteLine("89.0 dB");
-            ConfirmPermission();
-        });
-
-        mainMenu.AddOption("4", "Balance Tracks", () =>
+        mainMenu.AddOption("Balance Tracks", () =>
         {
             ClearDisplay();
             Console.WriteLine($"{tracksAnalyised} tracks balanced.");
             ConfirmPermission();
         }, () => trackCount > 0 && tracksAnalyised > 0);
 
-        mainMenu.AddOption("5", "Exit", ConsoleColor.DarkRed, () =>
+        mainMenu.AddOption("Exit", () =>
         {
-            mainMenu.Exit();
+            mainMenu.RequestExit();
         });
 
         // Main Loop
@@ -57,9 +59,9 @@ class Program
         while (menuStack.Count > 0)
         {
             Menu currentMenu = menuStack.Peek();
-            bool runAgain = currentMenu.RunOnce();
+            currentMenu.Run();
 
-            if (!runAgain)
+            if (currentMenu.RequestedExit)
             {
                 menuStack.Pop();
             }
@@ -75,7 +77,7 @@ class Program
     static void ConfirmPermission()
     {
         Console.WriteLine();
-        ConsoleVibrant.WriteLine(ConsoleColor.DarkYellow, "[ PRESS ANY KEY TO CONTINUE ]");
+        ConsoleVibrant.WriteLine(ConsoleColor.DarkYellow, "PRESS [ANY KEY] TO CONTINUE");
         Console.ReadKey(true);
     }
 

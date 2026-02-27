@@ -1,95 +1,145 @@
 using System;
 using System.Collections.Generic;
 
-public class Menu
+class Menu
 {
     // Variables
     private readonly List<MenuOption> _options = new List<MenuOption>();
     private string _name = "Menu";
-    private string _statusMessage = "";
-    private bool _runAgain = true;
+    private ConsoleColor _nameColor = ConsoleColor.White;
+    private int _selectedIndex;
 
-    // Contrsuctors
+    private bool _requestExit;
+    public bool RequestedExit => _requestExit;
+
+    // Constructors
     public Menu(string setName)
     {
         _name = setName;
     }
 
+    public Menu(string setName, ConsoleColor setNameColor)
+    {
+        _name = setName;
+        _nameColor = setNameColor;
+    }
+
     // Methods
-    public void AddOption(string setKey, string setLabel, Action setAction, Func<bool>? setCondition = null)
+    public void AddOption(string label, ConsoleColor color, Action action, Func<bool>? setCondition = null)
     {
-        _options.Add(new MenuOption(setKey, setLabel, ConsoleColor.White, setAction, setCondition));
+        _options.Add(new MenuOption(label, color, action, setCondition));
     }
 
-    public void AddOption(string setKey, string setLabel, ConsoleColor setColor, Action setAction, Func<bool>? setCondition = null)
+    public void AddOption(string setLabel, Action setAction, Func<bool>? setCondition = null)
     {
-        _options.Add(new MenuOption(setKey, setLabel, setColor, setAction, setCondition));
+        _options.Add(new MenuOption(setLabel, ConsoleColor.White, setAction, setCondition));
     }
 
-    public void SetStatus(string setStatusMessage)
+    public void RequestExit()
     {
-        _statusMessage = setStatusMessage;
-    }
-
-    public bool RunOnce()
-    {
-        Display();
-
-        Console.Write("   Select an option: ");
-        string? input = Console.ReadLine();
-
-        if (input == null) return false;
-
-        MenuOption? option = _options.Find(o => o.key == input);
-
-        if (option == null)
-        {
-            // Notify User
-        }
-        else if(!option.isEnabled())
-        {
-            // Notify User
-        }
-        else
-        {
-            option.action.Invoke();
-        }
-
-        return _runAgain;
-    }
-
-    public void Exit()
-    {
-        _runAgain = false;
+        _requestExit = true;
     }
 
     public void Reset()
     {
-        _runAgain = true;
+        _requestExit = false;
+        MoveToNextEnabled(0);
+    }
+
+    public void Run()
+    {
+        MoveToNextEnabled(0);
+
+        while (!_requestExit)
+        {
+            Display();
+
+            ConsoleKey consoleKey = Console.ReadKey(true).Key;
+
+            switch (consoleKey)
+            {
+                case ConsoleKey.UpArrow:
+                    MoveSelection(-1);
+                    break;
+
+                case ConsoleKey.DownArrow:
+                    MoveSelection(1);
+                    break;
+
+                case ConsoleKey.Enter:
+                    InvokeSelected();
+                    break;
+
+                case ConsoleKey.Escape:
+                    RequestExit();
+                    break;
+            }
+        }
+    }
+
+    private void MoveSelection(int direction)
+    {
+        int count = _options.Count;
+        int next = _selectedIndex;
+
+        do
+        {
+            next = (next + direction + count) % count;
+        }
+        while (!_options[next].isEnabled());
+
+        _selectedIndex = next;
+    }
+
+    private void MoveToNextEnabled(int start)
+    {
+        for (int i = 0; i < _options.Count; i++)
+        {
+            int index = (start + i) % _options.Count;
+            if (_options[index].isEnabled())
+            {
+                _selectedIndex = index;
+                return;
+            }
+        }
+    }
+
+    private void InvokeSelected()
+    {
+        MenuOption option = _options[_selectedIndex];
+
+        if (option.isEnabled())
+        {
+            option.action.Invoke();
+        }
     }
 
     private void Display()
     {
         Console.Clear();
+        ConsoleVibrant.WriteLine(_nameColor ,$"{_name}");
 
-        if (!string.IsNullOrEmpty(_statusMessage))
+        for (int i = 0; i < _options.Count; i++)
         {
-            Console.WriteLine("\n--- Status ---");
-            Console.WriteLine(_statusMessage);
-        }
+            MenuOption option = _options[i];
 
-        Console.WriteLine($"[ {_name} ]");
-        Console.WriteLine("");
-        foreach (MenuOption option in _options)
-        {
-            if (option.isEnabled())
+            if (!option.isEnabled())
             {
-                ConsoleVibrant.WriteLine(option.color, $"{option.key}. {option.label}");
+                ConsoleVibrant.WriteLine(ConsoleColor.DarkGray, $"  {option.label} (unavailable)");
+            }
+            else if (i == _selectedIndex)
+            {
+                Console.BackgroundColor = ConsoleColor.Red;
+                ConsoleVibrant.WriteLine(option.color, $"  {option.label} ");
+                Console.ResetColor();
             }
             else
             {
-                ConsoleVibrant.WriteLine(ConsoleColor.DarkGray, $"{option.key}. {option.label} (unavailable)");
+                ConsoleVibrant.WriteLine(option.color, $"  {option.label}");
             }
         }
+
+        Console.WriteLine();
+        ConsoleVibrant.WriteLine(ConsoleColor.Blue, "NAVIGATION [UP/DOWN] | SELECT [ENTER] | BACK [ESC]");
     }
 }
