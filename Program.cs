@@ -1,52 +1,86 @@
 ﻿using System;
+using System.Threading;
+using System.Collections.Generic;
 
 class Program
 {
+    private static Stack<Menu> menuStack = new Stack<Menu>();
+
+    // Fake Variables
+    static int trackCount = 0;
+    static int tracksAnalyised = 0;
+
     static void Main(string[] args)
     {
-        bool running = true;
+        // Menus
+        Menu mainMenu = new Menu("Main Menu");
+        Menu settingsMenu = new Menu("Settings");
 
-        while (running)
+        // Setup [mainMenu]
+        mainMenu.AddOption("1", "Add Tracks", () =>
         {
-            DisplayMenu();
-            string input = Console.ReadLine();
+            ClearDisplay();
+            trackCount += 1;
+            Console.WriteLine("Tracks Added.");
+            ConfirmPermission();
+        });
 
-            switch (input)
+        mainMenu.AddOption("2", "Analyse Tracks", () =>
+        {
+            ClearDisplay();
+            tracksAnalyised = trackCount;
+            Console.WriteLine("Complete.");
+            ConfirmPermission();
+        });
+
+        mainMenu.AddOption("3", "Set Target dB", () =>
+        {
+            ClearDisplay();
+            Console.WriteLine("89.0 dB");
+            ConfirmPermission();
+        });
+
+        mainMenu.AddOption("4", "Balance Tracks", () =>
+        {
+            ClearDisplay();
+            Console.WriteLine($"{tracksAnalyised} tracks balanced.");
+            ConfirmPermission();
+        }, () => trackCount > 0 && tracksAnalyised > 0);
+
+        mainMenu.AddOption("5", "Exit", ConsoleColor.DarkRed, () =>
+        {
+            mainMenu.Exit();
+        });
+
+        // Main Loop
+        DisplayMenu(mainMenu);
+        while (menuStack.Count > 0)
+        {
+            Menu currentMenu = menuStack.Peek();
+            bool runAgain = currentMenu.RunOnce();
+
+            if (!runAgain)
             {
-                case "1":
-                    Console.WriteLine("Hello World!");
-                    break;
-
-                case "2":
-                    Console.Write("Enter a number: ");
-                    if (int.TryParse(Console.ReadLine(), out int number))
-                    {
-                        Console.WriteLine($"Result: {number * 2}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Invalid number.");
-                    }
-                    break;
-
-                case "3":
-                    running = false;
-                    Console.WriteLine("Goodbye World!");
-                    break;
-
-                default:
-                    Console.WriteLine("Invalid option.");
-                    break;
+                menuStack.Pop();
             }
         }
     }
 
-    static void DisplayMenu()
+    static void DisplayMenu(Menu menu)
     {
-        Console.WriteLine("\n--- Main Menu ---");
-        Console.WriteLine("1. Say Hello World!");
-        Console.WriteLine("2. Multiply a number by 2");
-        Console.WriteLine("3. Exit");
-        Console.Write("Choose an option: ");
+        menu.Reset();
+        menuStack.Push(menu);
+    }
+
+    static void ConfirmPermission()
+    {
+        Console.WriteLine();
+        ConsoleVibrant.WriteLine(ConsoleColor.DarkYellow, "[ PRESS ANY KEY TO CONTINUE ]");
+        Console.ReadKey(true);
+    }
+
+    static void ClearDisplay()
+    {
+        Console.Clear();
     }
 }
