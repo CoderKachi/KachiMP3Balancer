@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows.Forms;
 using System.Threading;
 using System.Collections.Generic;
 
@@ -10,6 +11,7 @@ class Program
     static int trackCount = 0;
     static int tracksAnalyised = 0;
 
+    [STAThread]
     static void Main(string[] args)
     {
         // Menus
@@ -20,8 +22,14 @@ class Program
         mainMenu.AddOption("Add Track(s)", () =>
         {
             ClearDisplay();
-            trackCount += 1;
-            Console.WriteLine("Tracks Added.");
+            var tracks = PickTracks()
+                .Select(p => new Track(p))
+                .ToList();
+            foreach (Track track in tracks)
+            {
+                track.loudness = LoudnessCalculator.Calculate(track.path);
+                ConsoleVibrant.WriteLine(ConsoleColor.DarkGreen ,$"+ {track.name} [{track.loudness} dBFS]");
+            }
             ConfirmPermission();
         });
 
@@ -84,5 +92,19 @@ class Program
     static void ClearDisplay()
     {
         Console.Clear();
+    }
+
+    static string[] PickTracks()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Select MP3 files",
+            Filter = "MP3 Files (*.mp3)|*.mp3",
+            Multiselect = true
+        };
+
+        return dialog.ShowDialog() == DialogResult.OK
+            ? dialog.FileNames
+            : Array.Empty<string>();
     }
 }
